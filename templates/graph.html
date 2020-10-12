@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="/static/styles.css" media="all"/>
+<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+
+<svg width="1870" height="850"></svg>
+<input type="text" class="no-click" id="currenttemp" style="color: blue; font-weight: bold; width: auto"></input>
+<input type="text" class="no-click" id="currenttemp2" style="color: yellow; font-weight: bold; width: auto"></input>
+<input type="text" class="no-click" id="currenttemp3" style="color: #e60000; font-weight: bold; width: auto"></input>
+<input type="text" class="no-click" id="currenttemp4" style="color: #66ff66; font-weight: bold; width: auto"></input>
+<input type="text" class="no-click" id="currenttemp5" style="color: #fc9a37; font-weight: bold; width: auto"></input>
+<input type="text" class="no-click" id="currenttemp6" style="color: #ba30ff; font-weight: bold; width: auto"></input>
+
+<!-- load the d3.js library -->
+<script src="{{ url_for('static', filename='d3.v4.min.js') }}"></script>
+<script src="{{ url_for('static', filename='jquery.min.js') }}"></script>
+
+
+<script>
+
+var svg = d3.select("svg"),
+    margin =  margin = {top: 30, right: 35, bottom: 30, left: 30},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom ;
+    g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+
+var parseTime = d3.timeParse("%s");
+
+
+//var list = []
+
+
+//Set the ranges
+
+var y = d3.scaleLinear().domain([-10,40]).range([height, 0]);
+var y1 = d3.scaleLinear().range([0, height]);
+
+
+// Define the Y axis
+var yAxis0 = d3.axisLeft().scale(y)
+   .ticks(20)
+    ;
+var yAxis1 = d3.axisRight().scale(y)
+    .ticks(40)
+     ;
+
+
+ // text label for the y axis
+  g.append("text")
+      .attr("transform", "rotate(00)")
+      .attr("y", -5)
+      .attr("x",-5)
+      .style("text-anchor", "top")
+      .text("C°");
+
+  g.append("text")
+      .attr("transform", "translate("+ width+")", "rotate(00)")
+      .attr("y", -5)
+      .attr("x", -5)
+      .style("text-anchor", "top")
+      .text("C°");
+
+
+(function getTemp() {
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp1",
+    success: function(data) {
+
+$("#currenttemp").val("");
+$("#currenttemp2").val("");
+$("#currenttemp3").val("");
+$("#currenttemp4").val("");
+$("#currenttemp5").val("");
+$("#currenttemp6").val("");
+
+//date = parseTime(data[0])
+
+//list.push({date: date, temp: data[1]});
+//console.log(data)
+
+i = (data[data.length-1]['temp'])
+
+//document.getElementById("currenttemp").value = 'temperature';
+$("#currenttemp").val("Garage : " + i + "°C");
+
+var today = new Date().getTime();
+
+//let's not let the array become too big. Entries are deleted upon reaching the x axis origin
+//that's done in Python after all
+//if (list[0].date < today - 129600000) {
+//    list.splice(list[0], 1);}
+
+// Avoid the axis from being overwritten at each loop
+
+svg.selectAll(".x.axis")
+       .remove(xAxis);
+  //     .remove(make_x_gridlines);
+svg.selectAll(".y.axis")
+      .remove(yAxis0);
+//     .remove(make_y_gridlines);
+
+//Define X axis
+
+var x = d3.scaleTime().domain([today - 172800000, today]).range([0, width]);
+var xAxis = d3.axisBottom(x)
+    .scale(x)
+    .ticks(15)
+    .tickFormat(d3.timeFormat("%a %d - %Hh"));
+
+
+
+//delete the line and redraw with each iteration, otherwise lines are written over and over
+
+//y1.domain([-10,40]); //d3.min(d.temp), d3.max(d.temp));
+
+g.selectAll("path").remove();
+
+//grid lines
+function make_x_gridlines() {
+     return d3.axisBottom(x)
+         .ticks(20)
+}
+
+ // gridlines in y axis function
+function make_y_gridlines() {
+     return d3.axisLeft(y)
+        .ticks(9)
+ }
+;
+
+
+//remove previous gridlines
+
+svg.selectAll(".grid")
+      .remove();
+
+
+// add the X gridlines
+  g.append("g")
+     .attr("class", "grid")
+     .attr("transform", "translate(0," + height + ")")
+     .call(make_x_gridlines()
+     .tickSize(-height)
+     .tickFormat("")
+    )
+
+  // add the Y gridlines
+ g.append("g")
+    .attr("class", "grid")
+    .call(make_y_gridlines()
+    .tickSize(-width)
+    .tickFormat("")
+    )
+
+//create the line. I guess.
+
+var line = d3.line()
+  .x(function(d) { return x(parseTime(d.date)); })
+  .y(function(d) { return y(d.temp); })
+  
+// Add the line path.
+g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "blue")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");
+
+
+  
+  
+// Add the X Axis
+
+g.append("g")
+    .attr("class", "x axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(xAxis);
+
+// Add the first Y Axis
+g.append("g")
+      .attr("class", "y axis")
+      .call(yAxis0)
+
+//add the second Y axis
+
+g.append("g")
+        .attr("class", "y axis")
+        .attr("transform", "translate( " + width + ", 0 )")
+        .call(yAxis1)
+
+//$("#currenttemp").val("Current Temperature: " + i + "°C");
+
+
+//d3.select("g")
+//  .selectAll("label")
+//  .data(data)
+//  .enter().append("label")
+//    .text(function(d) { return d.temp + "\n" + parseTime(d.date) })
+ //   .on("mouseover", function(d){tooltip.text(d); return tooltip.style("visibility", "visible");})
+  //    .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+   //   .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+
+
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp2",
+    success: function(data) {
+    
+    i = (data[data.length-1]['temp'])
+    $("#currenttemp2").val("Séjour : " + i + "°C");
+//    var line2 = d3.line()
+ //  .x(function(d) { return x(parseTime(d.date)); })
+  // .y(function(d) { return y(d.temp); });
+
+    g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "yellow")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");
+
+   }
+   });
+    
+
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp3",
+    success: function(data) {
+
+    i = (data[data.length-1]['temp'])
+    $("#currenttemp3").val("Chambre 3 : " + i + "°C");
+//    var line3 = d3.line()
+//   .x(function(d) { return x(parseTime(d.date)); })
+//   .y(function(d) { return y(d.temp); });
+
+    g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "red")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");
+    }   
+    });
+
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp4",
+    success: function(data) {
+
+    i = (data[data.length-1]['temp'])
+    $("#currenttemp4").val("Extérieur : " + i + "°C");
+//    var line4 = d3.line()
+//   .x(function(d) { return x(parseTime(d.date)); })
+//   .y(function(d) { return y(d.temp); });
+
+    g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "#00e600")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");
+    }
+    });
+
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp5",
+    success: function(data) {
+ //console.log(data);
+    i = (data[data.length-1]['temp'])
+    $("#currenttemp5").val("Bureau : " + i + "°C");
+//    var line5 = d3.line()
+//   .x(function(d) { return x(parseTime(d.date)); })
+//   .y(function(d) { return y(d.temp); });
+
+    g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "#ff8607")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");	
+    }
+    });
+
+    $.ajax({
+    type: "GET",
+    url: "/_getTemp6",
+    success: function(data) {
+ //console.log(data);
+    i = (data[data.length-1]['temp'])
+    $("#currenttemp6").val("Chambre 1 : " + i + "°C");
+//    var line5 = d3.line()
+//   .x(function(d) { return x(parseTime(d.date)); })
+//   .y(function(d) { return y(d.temp); });
+
+    g.append("path")
+        .attr("d", line(data))
+        .attr("stroke", "#ba30ff")
+        .attr("fill", "none")
+        .attr("stroke-width", "2");
+    }
+    });
+ 
+
+}
+    }).then(function() {
+    setTimeout(getTemp, 120000);
+    });
+    })();
+
+</script>
+
