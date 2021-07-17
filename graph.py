@@ -7,13 +7,24 @@ from json import dumps, loads
 #from requests import get
 import logging
 from shutil import copyfile
+from nest import apiConnect
 
-##autoreboot
-import ctypes
-import struct
-from os import system
-libc = ctypes.CDLL('libc.so.6')
-buf = ctypes.create_string_buffer(4096)
+from socket import socket, AF_INET, SOCK_DGRAM
+
+#get the local IP address
+def getIP():
+    s = socket(AF_INET, SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    IP = s.getsockname()[0]
+    s.close()
+    return IP
+
+##autoreboot    #no longer necessary
+#import ctypes
+#import struct
+#from os import system
+#libc = ctypes.CDLL('libc.so.6')
+#buf = ctypes.create_string_buffer(4096)
 ##
 
 logging.basicConfig(filename='/home/pi/tempMonitor/graph.log', filemode='w', format='%(asctime)s %(levelname)s %(message)s', datefmt='%d/%m/%Y %H:%M:%S :', level=logging.DEBUG)
@@ -29,6 +40,7 @@ data6 = []
 extTempDelay = 5
 heat_on = 0
 saveData = 0
+
 
 try:
     with open('/home/pi/tempMonitor/data') as f:
@@ -94,7 +106,7 @@ class getTemp(Thread):
 
     def __init__(self):
         super().__init__()
-
+        self.sdm = None #the Nest resource object 
 
     def run(self):     #subroutine to check the temperature every 2 minutes
         global extTempDelay
@@ -175,18 +187,26 @@ class getTemp(Thread):
             #### ROOM 3 : MANUAL HEATING START AT NIGHT #### 
             try: 
                 if datetime.now().hour > 21 or datetime.now().hour < 4:
-                  #print(datetime.now().hour) 
-                      if float(temp3) > 0 and float(temp3) < 17.5 and heat_on == 0 :
-                       # print("on") 
-                           Popen(["nest", "--conf", "/home/pi/tempMonitor/static/nest_config", "temp", "20"])
-                           heat_on = 1
-                           logging.critical("Temperature in room 3 is {0} ; heating activated".format(temp3))
+                  #print(datetime.now().hour)
+                    if float(temp3) > 0 and float(temp3) < 17.5 and heat_on == 0 :
+                        if not self.sdm:
+                            self.sdm = apiConnect().connect()
+                            request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat","params": {"heatCelsius": 20.0}}
+                            self.sdm.enterprises().devices().executeCommand(name="enterprises/de7329e7-b23e-4e23-a13b-633b67c4a7fe/devices/"
+                                    "AVPHwEu9X3X5t7NOybVFebPTxkfbHPbyMRTpoK4H-iXFcGQnsL8LRHIn-udhyKQ6IUtLhGBkRnirYVzgq-Y1PtZN8xp0tg",body=request).execute()
 
-                      elif float(temp3) > 0 and float(temp3) > 18 and heat_on == 1:
+                            heat_on = 1
+                            logging.critical("Temperature in room 3 is {0} ; heating activated".format(temp3))
+
+                    elif float(temp3) > 0 and float(temp3) > 18 and heat_on == 1:
                         #print("off")
-                           Popen(["nest", "--conf", "/home/pi/tempMonitor/static/nest_config", "temp", "18"])
-                           heat_on = 0
-                           logging.critical("Temperature in room 3 is {0} ; heating deactivated".format(temp3))
+                        if not self.sdm:
+                            self.sdm = apiConnect().connect()
+                            request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat", "params": {"heatCelsius": 18.0}}
+                            self.sdm.enterprises().devices().executeCommand(name="enterprises/de7329e7-b23e-4e23-a13b-633b67c4a7fe/devices/"
+                                   "AVPHwEu9X3X5t7NOybVFebPTxkfbHPbyMRTpoK4H-iXFcGQnsL8LRHIn-udhyKQ6IUtLhGBkRnirYVzgq-Y1PtZN8xp0tg",body=request).execute()
+                        heat_on = 0
+                        logging.critical("Temperature in room 3 is {0} ; heating deactivated".format(temp3))
 
                 elif heat_on == 1:
                          heat_on = 0
@@ -280,10 +300,10 @@ class getTemp(Thread):
 
             data = []
 
- ##REBOOT AT NIGHT
-            libc.sysinfo(buf)  
-            if datetime.now().hour == 0 and 2 <= datetime.now().minute <= 5 and round(struct.unpack_from('@l', buf.raw)[0]/3600) > 12:
-                    system('sudo reboot')
+ ##REBOOT AT NIGHT     #disabled, not needed anymore. Also, seems like it wasn't working anymore, too.
+            #libc.sysinfo(buf)  
+            #if datetime.now().hour == 0 and 2 <= datetime.now().minute <= 5 and round(struct.unpack_from('@l', buf.raw)[0]/3600) > 12:
+            #        system('sudo reboot')
                        
 
             sleep(120)
@@ -323,5 +343,6 @@ def response6():
 
 
 if __name__ == '__main__':
+    IP = getIP()
     getTemp.start()
-    app.run(host='192.168.3.46', port=5005, debug=True)
+    app.run(host=IP, port=5005, debug=True)
