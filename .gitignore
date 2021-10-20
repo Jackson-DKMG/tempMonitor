@@ -7,3 +7,4 @@ dataBackup
 data_corrupted
 important_get_list_of_nest_devices
 static/nest_config
+nest_data.py
