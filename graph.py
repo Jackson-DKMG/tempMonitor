@@ -73,7 +73,8 @@ def query(dict_name,ip):
            logging.warning(ip + ": " + str(e))
            try:
                result = float({0}[len({0})-1]["temp"].format(dict_name))
-           except:
+           except Exception as e:
+               logging.warning(ip + ": " + str(e))
                result = 0
 
         return result
@@ -110,69 +111,41 @@ class getTemp(Thread):
             try:
                #temp2 = Popen(["ssh", "pi@192.168.3.48", "python3 getLocalTemp.py"], stdout=PIPE).communicate()[0]
                #res = Popen(["python3", "/home/pi/tempMonitor/getLocalTemp.py"], stdout=PIPE).communicate()[0]
-               res = check_output(["python3", "/home/pi/tempMonitor/getLocalTemp.py"], stderr=STDOUT, timeout=5)
-               res = str(res)
-               self.temp2 = float(res[2:-3])
+               res = str(check_output(["python3", "/home/pi/tempMonitor/getLocalTemp.py"], stderr=STDOUT, timeout=5))[2:-3]
+               self.temp2 = float(res)
                logging.info("Pi 3 = " + str(self.temp2))
             except Exception as e:
                logging.warning("Pi 3: " + str(e))
                #temp2 = 0
-               self.temp2 = float(data2[len(data2)-1]['temp'])
-               pass
+               try:
+                   self.temp2 = float(data2[len(data2)-1]['temp'])
+               except Exception as e:
+                   logging.warning("Pi 3: " + str(e))
+                   self.temp2 = 0
           ##### END LOCAL TEMP #####
 
           ##### PI ZEROS START ####
-            try:
-               self.temp1 = query("data1", "192.168.3.40")
-               logging.info("Pi Zero 1 = " + str(self.temp1))
-            except Exception as e:
-               logging.warning(str(e))
-               self.temp1 = float(data1[len(data1) - 1]['temp'])
-               pass
-
-            try:
-               self.temp3 = query("data3", "192.168.3.41")
-               logging.info("Pi Zero 2 = " + str(self.temp3))
-            except Exception as e:
-               logging.warning(str(e))
-               self.temp3 = float(data1[len(data3) - 1]['temp'])
-              # temp3 = 0
-               pass
-
-            try:
-               self.temp5 = query("data5", "192.168.3.43")
-               logging.info("Pi Zero 4 = " + str(self.temp5))
-            except Exception as e:
-               logging.warning(str(e))
-               temp5 = float(data1[len(data5) - 1]['temp'])
-               #temp5 = 0
-               pass
-
-            try:
-               self.temp6 = query("data6", "192.168.3.42")
-               logging.info("Pi Zero 3 = " + str(self.temp6))
-            except Exception as e:
-               logging.warning(str(e))
-               self.temp6 = float(data1[len(data6) - 1]['temp'])
-               #temp6 = 0
-               pass
-
+            self.temp1 = query("data1", "192.168.3.40")
+            self.temp3 = query("data3", "192.168.3.41")
+            self.temp5 = query("data5", "192.168.3.43")
+            self.temp6 = query("data6", "192.168.3.42")
            ##### PI ZEROS END ####
 
            ##### EXTERNAL TEMP: request every 10 minutes instead of 2 ####
+          #exterior sensor is connected to the .43 RPI, but the script has a different name so can't use the "query" function.
             variables.extTempDelay = variables.extTempDelay + 1
             if variables.extTempDelay > 4:
                try:
-                    res = check_output(["ssh", "pi@192.168.3.43", "python3 getExternalTemp.py"], stderr=STDOUT, timeout=5)
-                    res = str(res)
-                    #logging.debug("External: " + temp4)
-                    self.temp4 = float(res[2:-3])
+                    res = str(check_output(["ssh", "pi@192.168.3.43", "python3 getExternalTemp.py"], stderr=STDOUT, timeout=10))[2:-3]
+                    self.temp4 = float(res)
                     logging.info("External = " + str(self.temp4))
                except Exception as e:
                     logging.warning("External :" + str(e))
-                    #temp4 = 0
-                    self.temp4 = float(data4[len(data4)-1]['temp'])
-                    pass
+                    try:
+                        self.temp4 = float(data4[len(data4)-1]['temp'])
+                    except Exception as e:
+                        logging.warning("External :" + str(e))
+                        self.temp4 = 0
             ##### END EXTERNAL TEMP ####
 
             #### ROOM 3 : MANUAL HEATING START AT NIGHT ####
@@ -206,70 +179,25 @@ class getTemp(Thread):
                   pass
             #### END ROOM 3 ####
 
-            try:
-               if float(self.temp1) < 85:  #sometimes the garage sensor sends a crazy high reading. Ignore if so.
-                   checkpoint = {'temp': self.temp1, 'date': int(mktime(datetime.now().timetuple()))}
-                   #print(checkpoint)
-                   data1.append(checkpoint)
-                   removeOldEntries(data1)
+            for i,j in ([self.temp1,data1], [self.temp2, data2],[self.temp3,data3],[self.temp4,data4],
+                        [self.temp5,data5], [self.temp6,data6]):
+                try:
+                    checkpoint = {'temp': i, 'date': int(mktime(datetime.now().timetuple()))}
+                    j.append(checkpoint)
+                    removeOldEntries(j)
+                    self.data.append(j)
+                except Exception as e:
+                    logging.warning(str(e))
+                    pass
 
-            except:
-                   pass
-
-            try:
-               checkpoint = {'temp': self.temp2, 'date': int(mktime(datetime.now().timetuple()))}
-            #print(checkpoint)
-               data2.append(checkpoint)
-               removeOldEntries(data2)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
-
-            try:
-               checkpoint = {'temp': self.temp3, 'date': int(mktime(datetime.now().timetuple()))}
-            #print(checkpoint)
-               data3.append(checkpoint)
-               removeOldEntries(data3)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
-
-            try:
-               if variables.extTempDelay > 4:
-                    variables.extTempDelay = 0
-                    checkpoint = {'temp': self.temp4, 'date': int(mktime(datetime.now().timetuple()))}
-                    data4.append(checkpoint)
-                    removeOldEntries(data4)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
-
-            try:
-               checkpoint = {'temp': self.temp5, 'date': int(mktime(datetime.now().timetuple()))}
-               data5.append(checkpoint)
-               removeOldEntries(data5)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
-
-            try:
-               checkpoint = {'temp': self.temp6, 'date': int(mktime(datetime.now().timetuple()))}
-               data6.append(checkpoint)
-               removeOldEntries(data6)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
-
-            try:
-               self.data.append(data1)
-               self.data.append(data2)
-               self.data.append(data3)
-               self.data.append(data4)
-               self.data.append(data5)
-               self.data.append(data6)
-            except Exception as e:
-                  logging.warning(str(e))
-                  pass
+            #try:
+            #   if float(self.temp1) < 85:  #sometimes the garage sensor sends a crazy high reading. Ignore if so.
+            #       checkpoint = {'temp': self.temp1, 'date': int(mktime(datetime.now().timetuple()))}
+            #       #print(checkpoint)
+            #       data1.append(checkpoint)
+            #       removeOldEntries(data1)
+            #except:
+            #       pass
 
             try:
                 with open('/home/pi/tempMonitor/data', 'w') as file:
@@ -328,8 +256,6 @@ def response5():
 @app.route('/_getTemp6', methods=['GET'])
 def response6():
     return jsonify(data6)
-
-
 
 
 if __name__ == '__main__':
