@@ -72,9 +72,9 @@ def query(dict_name,ip):
         except Exception as e:
            logging.warning(ip + ": " + str(e))
            try:
-               result = float({0}[len({0})-1]["temp"].format(dict_name))
-           except Exception as e:
-               logging.warning(ip + ": " + str(e))
+               result = dict_name[-1]["temp"] #if any error, just reuse the previous value
+           except Exception as e1:
+               logging.warning(ip + ": " + str(e1))
                result = 0
 
         return result
@@ -118,17 +118,17 @@ class getTemp(Thread):
                logging.warning("Pi 3: " + str(e))
                #temp2 = 0
                try:
-                   self.temp2 = float(data2[len(data2)-1]['temp'])
-               except Exception as e:
-                   logging.warning("Pi 3: " + str(e))
+                   self.temp2 = data2[-1]["temp"]
+               except Exception as e1:
+                   logging.warning("Pi 3: " + str(e1))
                    self.temp2 = 0
           ##### END LOCAL TEMP #####
 
           ##### PI ZEROS START ####
-            self.temp1 = query("data1", "192.168.3.40")
-            self.temp3 = query("data3", "192.168.3.41")
-            self.temp5 = query("data5", "192.168.3.43")
-            self.temp6 = query("data6", "192.168.3.42")
+            self.temp1 = query(data1, "192.168.3.40")
+            self.temp3 = query(data3, "192.168.3.41")
+            self.temp5 = query(data5, "192.168.3.43")
+            self.temp6 = query(data6, "192.168.3.42")
            ##### PI ZEROS END ####
 
            ##### EXTERNAL TEMP: request every 10 minutes instead of 2 ####
@@ -136,15 +136,15 @@ class getTemp(Thread):
             variables.extTempDelay = variables.extTempDelay + 1
             if variables.extTempDelay > 4:
                try:
-                    res = str(check_output(["ssh", "pi@192.168.3.43", "python3 getExternalTemp.py"], stderr=STDOUT, timeout=10))[2:-3]
+                    res = str(check_output(["ssh", "pi@192.168.3.43", "python3 getExternalTemp.py"], stderr=STDOUT, timeout=5))[2:-3]
                     self.temp4 = float(res)
                     logging.info("External = " + str(self.temp4))
                except Exception as e:
                     logging.warning("External :" + str(e))
                     try:
-                        self.temp4 = float(data4[len(data4)-1]['temp'])
-                    except Exception as e:
-                        logging.warning("External :" + str(e))
+                        self.temp4 = data4[-1]["temp"]
+                    except Exception as e1:
+                        logging.warning("External :" + str(e1))
                         self.temp4 = 0
             ##### END EXTERNAL TEMP ####
 
