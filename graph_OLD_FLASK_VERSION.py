@@ -1,17 +1,13 @@
+from flask import Flask, render_template, jsonify
 from datetime import datetime
 from time import sleep, mktime
 from threading import Thread
-from subprocess import STDOUT, check_output
+from subprocess import STDOUT, check_output #, PIPE
 from json import dumps, loads
+#from requests import get
 import logging
 from shutil import copyfile
 from nest import apiConnect
-import uvicorn
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse,JSONResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-
 
 import variables
 import nest_data
@@ -39,14 +35,10 @@ try:
     data4 = data[3]
     data5 = data[4]
     data6 = data[5]
-    del data  # won't need this anymore
 
 except Exception as e:
     logging.error("Couldn't load data, loading the backup: " + str(e))
-    try:
-        copyfile('/home/pi/tempMonitor/data', '/home/pi/tempMonitor/data_corrupted')
-    except:
-        pass #maybe the file doesn't exist
+    copyfile('/home/pi/tempMonitor/data', '/home/pi/tempMonitor/data_corrupted')
     try:
         with open('/home/pi/tempMonitor/dataBackup') as f:
             for line in f:
@@ -58,16 +50,11 @@ except Exception as e:
         data4 = data[3]
         data5 = data[4]
         data6 = data[5]
-        del data
 
     except Exception as e:
         logging.error("Couldn't load the backup either. Starting with no history: " + str(e))
-        data1 = []
-        data2 = []
-        data3 = []
-        data4 = []
-        data5 = []
-        data6 = []
+        data = []
+        pass
 
 def query(dict_name,ip):
 
@@ -92,11 +79,8 @@ def removeOldEntries(dataset):
                 temp_dict.append(i)
         for i in temp_dict:
                 dataset.remove(i)
-##FASTAPI SETUP##
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="/home/pi/tempMonitor/static", html=False), name="static")
-templates = Jinja2Templates(directory="/home/pi/tempMonitor/templates")
-####
+
+app = Flask(__name__)
 
 class getTemp(Thread):
 
@@ -222,38 +206,36 @@ class getTemp(Thread):
 getTemp = getTemp()
 getTemp.daemon = True
 
-@app.get('/', response_class=HTMLResponse)
-async def graph(request: Request):
-    return templates.TemplateResponse("graph.html", {"request": request})
-#def graph():
-   #return render_template('graph.html')
+@app.route('/', methods=['GET'])
+def graph():
+   return render_template('graph.html')
 
-@app.get('/_getTemp1')
+@app.route('/_getTemp1', methods=['GET'])
 def response():
-    return JSONResponse(content=data1)
+    return jsonify(data1)
 
-@app.get('/_getTemp2')
+@app.route('/_getTemp2', methods=['GET'])
 def response2():
-    return JSONResponse(content=data2)
+    return jsonify(data2)
 
-@app.get('/_getTemp3')
+@app.route('/_getTemp3', methods=['GET'])
 def response3():
-    return JSONResponse(content=data3)
+    return jsonify(data3)
 
-@app.get('/_getTemp4')
+@app.route('/_getTemp4', methods=['GET'])
 def response4():
-    return JSONResponse(content=data4)
+    return jsonify(data4)
 
-@app.get('/_getTemp5')
+@app.route('/_getTemp5', methods=['GET'])
 def response5():
-    return JSONResponse(content=data5)
+    return jsonify(data5)
 
-@app.get('/_getTemp6')
+@app.route('/_getTemp6', methods=['GET'])
 def response6():
-    return JSONResponse(content=data6)
+    return jsonify(data6)
 
 
 if __name__ == '__main__':
     IP = getIP()
     getTemp.start()
-    uvicorn.run(app, host=IP, port=5005)
+    app.run(host=IP, port=5005, debug=True)
