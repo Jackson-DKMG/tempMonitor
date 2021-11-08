@@ -187,6 +187,15 @@ class getTemp(Thread):
                   pass
             #### END ROOM 3 ####
 
+            try:
+                if float(self.temp1) < 85:  #sometimes the garage sensor sends a crazy high reading. Ignore if so.
+                    checkpoint = {'temp': self.temp1, 'date': int(mktime(datetime.now().timetuple()))}
+                    data1.append(checkpoint)
+                    removeOldEntries(data1)
+            except:
+                pass
+
+
             for i,j in ([self.temp1,data1], [self.temp2, data2],[self.temp3,data3],[self.temp4,data4],
                         [self.temp5,data5], [self.temp6,data6]):
                 try:
