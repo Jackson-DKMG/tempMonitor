@@ -134,10 +134,15 @@ class getTemp(Thread):
 
           ##### PI ZEROS START ####
             self.temp1 = query(data1, "192.168.3.40")
+            logging.info("Pi Zero 1 = " + str(self.temp1))
             self.temp3 = query(data3, "192.168.3.41")
+            logging.info("Pi Zero 2 = " + str(self.temp3))
             self.temp5 = query(data5, "192.168.3.43")
+            logging.info("Pi Zero 4 = " + str(self.temp5))
             self.temp6 = query(data6, "192.168.3.42")
-           ##### PI ZEROS END ####
+            logging.info("Pi Zero 3 = " + str(self.temp6))
+
+        ##### PI ZEROS END ####
 
            ##### EXTERNAL TEMP: request every 10 minutes instead of 2 ####
           #exterior sensor is connected to the .43 RPI, but the script has a different name so can't use the "query" function.
@@ -182,13 +187,13 @@ class getTemp(Thread):
                 elif variables.heat_on == 1:
                          variables.heat_on = 0
 
-            except Exception as e:
-                  logging.warning(str(e))
+            except Exception as e1:
+                  logging.critical("COULDN'T ACTIVATE THE HEATING:" + str(e1))
                   pass
             #### END ROOM 3 ####
 
             try:
-                if float(self.temp1) < 85:  #sometimes the garage sensor sends a crazy high reading. Ignore if so.
+                if float(self.temp1) < 60:  #sometimes the garage sensor sends a crazy high reading. Ignore if so.
                     checkpoint = {'temp': self.temp1, 'date': int(mktime(datetime.now().timetuple()))}
                     data1.append(checkpoint)
                     removeOldEntries(data1)
