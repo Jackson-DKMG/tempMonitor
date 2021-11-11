@@ -14,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 
 
 import variables
-import nest_data
+#import nest_data
 
 from socket import socket, AF_INET, SOCK_DGRAM
 
