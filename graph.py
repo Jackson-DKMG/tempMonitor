@@ -168,18 +168,18 @@ class getTemp(Thread):
                     if 0 < float(self.temp3) < 17.5 and variables.heat_on == 0 :
                         if not self.sdm:
                             self.sdm = apiConnect().connect()
-                            request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat","params": {"heatCelsius": 20.0}}
-                            self.sdm.enterprises().devices().executeCommand(name=nest_data.name,body=request).execute()
-
-                            variables.heat_on = 1
-                            logging.critical("Temperature in room 3 is {0} ; heating activated".format(self.temp3))
+                        request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat","params": {"heatCelsius": 20.0}}
+                        self.sdm.enterprises().devices().executeCommand(name="enterprises/de7329e7-b23e-4e23-a13b-633b67c4a7fe/devices/"
+                                   "AVPHwEu9X3X5t7NOybVFebPTxkfbHPbyMRTpoK4H-iXFcGQnsL8LRHIn-udhyKQ6IUtLhGBkRnirYVzgq-Y1PtZN8xp0tg",body=request).execute()
+                        variables.heat_on = 1
+                        logging.critical("Temperature in room 3 is {0} ; heating activated".format(self.temp3))
 
                     elif float(self.temp3) > 0 and float(self.temp3) > 18 and variables.heat_on == 1:
                         #print("off")
                         if not self.sdm:
                             self.sdm = apiConnect().connect()
-                            request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat", "params": {"heatCelsius": 18.0}}
-                            self.sdm.enterprises().devices().executeCommand(name="enterprises/de7329e7-b23e-4e23-a13b-633b67c4a7fe/devices/"
+                        request = {"command": "sdm.devices.commands.ThermostatTemperatureSetpoint.SetHeat", "params": {"heatCelsius": 18.0}}
+                        self.sdm.enterprises().devices().executeCommand(name="enterprises/de7329e7-b23e-4e23-a13b-633b67c4a7fe/devices/"
                                    "AVPHwEu9X3X5t7NOybVFebPTxkfbHPbyMRTpoK4H-iXFcGQnsL8LRHIn-udhyKQ6IUtLhGBkRnirYVzgq-Y1PtZN8xp0tg",body=request).execute()
                         variables.heat_on = 0
                         logging.critical("Temperature in room 3 is {0} ; heating deactivated".format(self.temp3))
