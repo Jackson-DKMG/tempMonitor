@@ -74,8 +74,8 @@ def query(dict_name,ip):
         try:
            res = str(check_output(["ssh", "pi@{0}".format(ip), "python3 getTemp.py"], stderr=STDOUT, timeout=5))[2:-3]
            result = float(res)
-        except Exception as e:
-           logging.warning(ip + ": " + str(e))
+        except Exception as e1:
+           logging.warning(ip + ": " + str(e1))
            try:
                result = dict_name[-1]["temp"] #if any error, just reuse the previous value
            except Exception as e1:
@@ -122,8 +122,8 @@ class getTemp(Thread):
                res = str(check_output(["python3", "/home/pi/tempMonitor/getLocalTemp.py"], stderr=STDOUT, timeout=5))[2:-3]
                self.temp2 = float(res)
                logging.info("Pi 3 = " + str(self.temp2))
-            except Exception as e:
-               logging.warning("Pi 3: " + str(e))
+            except Exception as e1:
+               logging.warning("Pi 3: " + str(e1))
                #temp2 = 0
                try:
                    self.temp2 = data2[-1]["temp"]
@@ -152,8 +152,8 @@ class getTemp(Thread):
                     res = str(check_output(["ssh", "pi@192.168.3.43", "python3 getExternalTemp.py"], stderr=STDOUT, timeout=5))[2:-3]
                     self.temp4 = float(res)
                     logging.info("External = " + str(self.temp4))
-               except Exception as e:
-                    logging.warning("External :" + str(e))
+               except Exception as e1:
+                    logging.warning("External :" + str(e1))
                     try:
                         self.temp4 = data4[-1]["temp"]
                     except Exception as e1:
@@ -197,19 +197,19 @@ class getTemp(Thread):
                     checkpoint = {'temp': self.temp1, 'date': int(mktime(datetime.now().timetuple()))}
                     data1.append(checkpoint)
                     removeOldEntries(data1)
-            except:
-                pass
+                    self.data.append(data1)
+            except Exception as e1:
+                logging.warning(str(e1))
 
-
-            for i,j in ([self.temp1,data1], [self.temp2, data2],[self.temp3,data3],[self.temp4,data4],
+            for i,j in ([self.temp2, data2],[self.temp3,data3],[self.temp4,data4],
                         [self.temp5,data5], [self.temp6,data6]):
                 try:
                     checkpoint = {'temp': i, 'date': int(mktime(datetime.now().timetuple()))}
                     j.append(checkpoint)
                     removeOldEntries(j)
                     self.data.append(j)
-                except Exception as e:
-                    logging.warning(str(e))
+                except Exception as e1:
+                    logging.warning(str(e1))
                     pass
 
             try:
@@ -217,16 +217,16 @@ class getTemp(Thread):
                     file.write(dumps(self.data))
                     variables.saveData = variables.saveData + 1
 
-            except Exception as e:
-                logging.error("Couldn't write data to file: " + str(e))
+            except Exception as e1:
+                logging.error("Couldn't write data to file: " + str(e1))
                 pass
 
             if variables.saveData > 4:         #make a backup of the data file every 10 minutes.
                    variables.saveData = 0
                    try:
                        copyfile('/home/pi/tempMonitor/data', '/home/pi/tempMonitor/dataBackup')
-                   except Exception as e:
-                       logging.error("Couldn't make the backup: " + str(e))
+                   except Exception as e1:
+                       logging.error("Couldn't make the backup: " + str(e1))
                        pass
 
             self.data = []
