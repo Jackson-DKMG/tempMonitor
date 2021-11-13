@@ -5,11 +5,11 @@ from httplib2 import Http
 from oauth2client import client, file, tools
 from os import path, remove
 
-sdm = None
 
 class apiConnect():
     def __init__(self):
         super().__init__()
+        self.sdm = None
         #self.connect()
 
     def connect(self):#, setup=False):
@@ -24,8 +24,8 @@ class apiConnect():
             return "Not found" #None
         else:
             http = credentials.authorize(Http())
-            sdm = discovery.build('smartdevicemanagement', 'v1', http=http)
-            return sdm
+            self.sdm = discovery.build('smartdevicemanagement', 'v1', http=http)
+            return self.sdm
 
     def config(self):
         credentials_file_path = './credentials/credentials.json'
@@ -46,9 +46,9 @@ class apiConnect():
             credentials = tools.run_flow(flow, store)
         # define API service
         http = credentials.authorize(Http())
-        sdm = discovery.build('smartdevicemanagement', 'v1', http=http, cache_discovery=False) #cache_discovery=false removes a warning about not finding the cache. Yes.
+        self.sdm = discovery.build('smartdevicemanagement', 'v1', http=http, cache_discovery=False) #cache_discovery=false removes a warning about not finding the cache. Yes.
 
-        return sdm
+        return self.sdm
 
 #sdm = apiConnect().connect()
 
